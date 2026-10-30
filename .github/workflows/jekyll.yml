@@ -18,11 +18,6 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - name: Read GitHub Pages configuration
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh api "repos/$GITHUB_REPOSITORY/pages" || true
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Setup Node.js
@@ -50,3 +45,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./_site
           force_orphan: true
+      - name: Verify deployed homepage
+        continue-on-error: true
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            http_code=$(curl -L -s -o /tmp/homepage.html -w "%{http_code}" https://ivoryphysician.github.io/LJT-Homepage/ || true)
+            echo "Attempt ${attempt}: HTTP ${http_code}"
+            if [ "${http_code}" = "200" ] && grep -q "Junteng Liu" /tmp/homepage.html; then
+              echo "Deployed homepage content verified."
+              exit 0
+            fi
+            sleep 20
+          done
