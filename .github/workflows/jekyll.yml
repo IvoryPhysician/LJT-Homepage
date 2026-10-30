@@ -18,23 +18,11 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - name: Try enabling Pages through API
+      - name: Read GitHub Pages configuration
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "has_pages before:"
-          gh api "repos/$GITHUB_REPOSITORY" --jq .has_pages || true
-          gh api --method POST \
-            -H "Accept: application/vnd.github+json" \
-            "repos/$GITHUB_REPOSITORY/pages" \
-            -f build_type=workflow || true
-          gh api --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            "repos/$GITHUB_REPOSITORY" \
-            -f has_pages=true || true
-          echo "has_pages after:"
-          gh api "repos/$GITHUB_REPOSITORY" --jq .has_pages || true
+        run: gh api "repos/$GITHUB_REPOSITORY/pages" || true
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Setup Node.js
