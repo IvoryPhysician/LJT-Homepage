@@ -45,15 +45,18 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./_site
           force_orphan: true
-      - name: Verify deployed homepage
+      - name: Inspect Pages deployment
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for attempt in 1 2 3 4 5 6; do
-            http_code=$(curl -L -s -o /tmp/homepage.html -w "%{http_code}" https://ivoryphysician.github.io/LJT-Homepage/ || true)
-            echo "Attempt ${attempt}: HTTP ${http_code}"
-            if [ "${http_code}" = "200" ] && grep -q "Junteng Liu" /tmp/homepage.html; then
-              echo "Deployed homepage content verified."
-              exit 0
-            fi
-            sleep 20
+          echo "Pages configuration:"
+          gh api "repos/$GITHUB_REPOSITORY/pages" || true
+          echo "Latest Pages builds:"
+          gh api "repos/$GITHUB_REPOSITORY/pages/builds?per_page=3" || true
+          for url in "https://ivoryphysician.github.io/" "https://ivoryphysician.github.io/LJT-Homepage/"; do
+            code=$(curl -L -s -o /tmp/page.html -w "%{http_code}" "$url" || true)
+            echo "$url -> HTTP $code"
+            head -c 300 /tmp/page.html || true
+            echo
           done
