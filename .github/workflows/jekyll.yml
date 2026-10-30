@@ -45,18 +45,24 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./_site
           force_orphan: true
-      - name: Inspect Pages deployment
+      - name: Configure and verify GitHub Pages
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Pages configuration:"
+          echo "Switching Pages source to gh-pages..."
+          gh api --method PUT "/repos/$GITHUB_REPOSITORY/pages" \
+            -f 'source[branch]=gh-pages' \
+            -f 'source[path]=/' || true
+          echo "Current Pages configuration:"
           gh api "repos/$GITHUB_REPOSITORY/pages" || true
-          echo "Latest Pages builds:"
-          gh api "repos/$GITHUB_REPOSITORY/pages/builds?per_page=3" || true
-          for url in "https://ivoryphysician.github.io/" "https://ivoryphysician.github.io/LJT-Homepage/"; do
-            code=$(curl -L -s -o /tmp/page.html -w "%{http_code}" "$url" || true)
-            echo "$url -> HTTP $code"
-            head -c 300 /tmp/page.html || true
-            echo
+          sleep 30
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl -L -s -o /tmp/homepage.html -w "%{http_code}" "https://ivoryphysician.github.io/LJT-Homepage/" || true)
+            echo "Attempt ${attempt}: HTTP ${code}"
+            if [ "${code}" = "200" ] && grep -q "Junteng Liu" /tmp/homepage.html; then
+              echo "Deployed homepage content verified."
+              exit 0
+            fi
+            sleep 20
           done
